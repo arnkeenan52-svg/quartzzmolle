@@ -30,7 +30,8 @@ function pickWeightBracket(weightKg) {
   if (weightKg <= 5) return '5';
   if (weightKg <= 10) return '10';
   if (weightKg <= 15) return '15';
-  return '20'; // 15-20 kg (anything above 20 also goes here as a safety fallback)
+  if (weightKg <= 20) return '20';
+  return '25'; // 20-25 kg (anything above 25 also goes here as a safety fallback)
 }
 
 function pickTemplateId(deliveryKey, shippingName, templates, weightKg) {
