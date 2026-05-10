@@ -76,6 +76,14 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
+      padding-top: calc(var(--nav-h, 70px) + 2.5rem);
+    }
+    /* On shorter viewports (MacBook/laptops) ensure white box doesn't touch nav */
+    @media (max-height: 900px) and (min-width: 601px) {
+      .success-page {
+        align-items: flex-start;
+        padding-top: calc(var(--nav-h, 70px) + 3rem);
+      }
     }
     .success-box {
       background: #fff;
