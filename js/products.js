@@ -17,7 +17,7 @@ const PRODUCTS = [
     previewImage: 'images/dalarna_type85.png',
     description: 'Dalarna er en klassisk dansk hvedesort med en rig smag og god bageevne. Perfekt til rugbrød, boller og grovbrød. Dyrket og malet i Danmark.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1440 kJ / 343 kcal',
       fat: '2,3 g', saturated: '0,4 g',
@@ -39,7 +39,7 @@ const PRODUCTS = [
     previewImage: 'images/fuldkorn_dalarna.png',
     description: 'Dalarna Type 85 er et mellemsigtet mel der bevarer mere af kornets naturlige smag og næringsindhold end fintere mel. Ideel til brød med karakter.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1455 kJ / 347 kcal',
       fat: '1,8 g', saturated: '0,3 g',
@@ -61,7 +61,7 @@ const PRODUCTS = [
     previewImage: 'images/mariagertoba.png',
     description: 'Mariagertoba er et fintsigtet hvedemel med fremragende bageegenskaber. Det giver luftige og velsmagende brød og boller. En af vores mest elskede sorter.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1460 kJ / 348 kcal',
       fat: '1,5 g', saturated: '0,3 g',
@@ -83,7 +83,7 @@ const PRODUCTS = [
     previewImage: 'images/olands_fuldkorn.png',
     description: 'Ølandshvede er en gammel nordisk kornsort med en kompleks og nøddeagtig smag. Perfekt til surdejsbrød og håndværkerbrød der kræver karakter.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1435 kJ / 342 kcal',
       fat: '2,4 g', saturated: '0,4 g',
@@ -105,7 +105,7 @@ const PRODUCTS = [
     previewImage: 'images/olands_type85.png',
     description: 'Ølands Type 85 kombinerer det bedste fra fuldkorn og hvidt mel. En alsidig meltype der giver brød med dybde og god struktur.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1450 kJ / 345 kcal',
       fat: '1,8 g', saturated: '0,3 g',
@@ -127,7 +127,7 @@ const PRODUCTS = [
     previewImage: 'images/purpurhvede.png',
     description: 'Purpurhvede er en smuk og sjælden hvedesort med en dyb, lilla farve. Rig på antioxidanter og med en markant, sødlig smag der løfter ethvert bagværk.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1440 kJ / 343 kcal',
       fat: '2,4 g', saturated: '0,4 g',
@@ -215,7 +215,7 @@ const PRODUCTS = [
     previewImage: 'images/ruggreen_fuldkorn.png',
     description: 'Vores rugmel er malet af hele rugkerner på stenkværn. Rig på fibre og med en dyb, jordnær smag der er uundværlig i det klassiske danske rugbrød.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1340 kJ / 320 kcal',
       fat: '2,0 g', saturated: '0,3 g',
