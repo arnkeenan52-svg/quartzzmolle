@@ -43,7 +43,7 @@
 <body>
   <div class="bottom-mask" aria-hidden="true"></div>
   <nav class="nav" id="nav">
-    <a href="index.html" class="nav-logo" onclick="event.preventDefault(); window.location.reload();">
+    <a href="index.html" class="nav-logo" onclick="event.preventDefault(); window.scrollTo(0, 0); window.location.replace('index.html?r=' + Date.now());">
       <img src="images/logopng.png" alt="Quartz Mølle" class="brand-mark" />
       <img src="images/eu-organic.jpg" alt="EU Økologi" class="eco-mark" />
       <img src="images/statskontrolleret.png" alt="Statskontrolleret Økologisk" class="eco-mark" />
