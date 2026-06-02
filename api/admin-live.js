@@ -11,7 +11,7 @@ function checkAuth(req) {
   try {
     const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf-8');
     const [u, p] = decoded.split(':');
-    return u === ADMIN_USER && p === ADMIN_PASS;
+    return u.toLowerCase() === ADMIN_USER.toLowerCase() && p === ADMIN_PASS;
   } catch { return false; }
 }
 
