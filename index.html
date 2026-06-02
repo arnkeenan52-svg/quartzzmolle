@@ -18,6 +18,21 @@
     .video-bg {
       pointer-events: none;
     }
+    /* Hide mobile menu instantly — prevents flash-open on every reload */
+    #mobileMenu {
+      display: none !important;
+    }
+    #mobileMenu.open {
+      display: flex !important;
+    }
+    /* Fade hero video in once it has data — prevents black frame on load */
+    #vid1 {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    #vid1.ready {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -184,8 +199,6 @@
   <script src="js/main.js"></script>
 
   <script>
-    // Force all background videos to always loop and never pause.
-    // Runs after main.js so it wins any conflicts.
     (function () {
       function forcePlay(vid) {
         vid.muted = true;
@@ -199,22 +212,29 @@
 
       function initAll() {
         document.querySelectorAll('video.video-bg').forEach(function (vid) {
+          // Show the video as soon as it has enough data to display a frame
+          if (vid.readyState >= 2) {
+            vid.classList.add('ready');
+          } else {
+            vid.addEventListener('loadeddata', function () {
+              vid.classList.add('ready');
+            });
+            vid.addEventListener('canplay', function () {
+              vid.classList.add('ready');
+            });
+          }
+
           forcePlay(vid);
-          // Fight back every time something pauses the video
           vid.addEventListener('pause', function () { forcePlay(vid); });
           vid.addEventListener('ended', function () { forcePlay(vid); });
         });
       }
 
-      // Run immediately…
       initAll();
-      // …and again after everything (including main.js) has fully loaded
       window.addEventListener('load', function () { initAll(); });
-      // …and whenever the user comes back to the tab/app
       document.addEventListener('visibilitychange', function () {
         if (!document.hidden) { initAll(); }
       });
-      // …and on first touch (required by some mobile browsers)
       document.addEventListener('touchstart', function handler() {
         initAll();
         document.removeEventListener('touchstart', handler);
@@ -223,3 +243,4 @@
   </script>
 </body>
 </html>
+
