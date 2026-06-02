@@ -14,21 +14,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    /* Ensure all video backgrounds never pause */
-    .video-bg {
-      pointer-events: none;
-    }
-    /* Hide mobile menu instantly — prevents flash-open on every reload */
-    #mobileMenu {
-      display: none !important;
-    }
-    #mobileMenu.open {
-      display: flex !important;
-    }
-    /* Fade hero video in once it has data — avoids black frame flash */
-    #vid1 {
-      opacity: 1;
-    }
+    .video-bg { pointer-events: none; }
+    #mobileMenu { display: none !important; }
+    #mobileMenu.open { display: flex !important; }
+    #vid1 { opacity: 1; }
   </style>
 </head>
 <body>
@@ -62,8 +51,8 @@
 
   <!-- VIDEO 1 - HERO -->
   <section class="video-section is-active" id="vs1">
-    <video class="video-bg" id="vid1" autoplay muted loop playsinline preload="auto">
-      <source src="https://pub-a9fcbb930b0c4014b8286f9c245143a9.r2.dev/0602.mp4#t=0.001" type="video/mp4" />
+    <video class="video-bg" id="vid1" autoplay muted loop playsinline webkit-playsinline preload="auto" poster="images/logopng.png">
+      <source src="https://pub-a9fcbb930b0c4014b8286f9c245143a9.r2.dev/0602.mp4" type="video/mp4" />
     </video>
     <div class="video-overlay"></div>
     <div class="hero-content" id="heroContent">
@@ -80,8 +69,10 @@
 
   <!-- VIDEO 2 - STORY -->
   <section class="video-section" id="vs2">
-    <video class="video-bg" id="vid2" autoplay muted loop playsinline preload="auto">
-      <source src="https://pub-a9fcbb930b0c4014b8286f9c245143a9.r2.dev/DJI_20250622141515_0006_D.mov#t=0.001" type="video/quicktime" />
+    <video class="video-bg" id="vid2" autoplay muted loop playsinline webkit-playsinline preload="auto" poster="images/logopng.png">
+      <!-- Try mp4 mime first so mobile browsers don't reject it -->
+      <source src="https://pub-a9fcbb930b0c4014b8286f9c245143a9.r2.dev/DJI_20250622141515_0006_D.mov" type="video/mp4" />
+      <source src="https://pub-a9fcbb930b0c4014b8286f9c245143a9.r2.dev/DJI_20250622141515_0006_D.mov" type="video/quicktime" />
     </video>
     <div class="video-overlay overlay-dark"></div>
     <div class="text-block text-left">
@@ -98,8 +89,8 @@
 
   <!-- VIDEO 3 - PRODUCTS -->
   <section class="video-section" id="vs3">
-    <video class="video-bg" id="vid3" autoplay muted loop playsinline preload="auto">
-      <source src="https://pub-a9fcbb930b0c4014b8286f9c245143a9.r2.dev/0602%281%29.mp4#t=0.001" type="video/mp4" />
+    <video class="video-bg" id="vid3" autoplay muted loop playsinline webkit-playsinline preload="auto" poster="images/logopng.png">
+      <source src="https://pub-a9fcbb930b0c4014b8286f9c245143a9.r2.dev/0602%281%29.mp4" type="video/mp4" />
     </video>
     <div class="video-overlay overlay-medium"></div>
     <div class="text-block text-right">
@@ -202,24 +193,19 @@
         vid.setAttribute('muted', '');
         vid.setAttribute('loop', '');
         vid.setAttribute('playsinline', '');
+        vid.setAttribute('webkit-playsinline', '');
         var p = vid.play();
         if (p && p.catch) p.catch(function () {});
       }
 
       function initAll() {
         document.querySelectorAll('video.video-bg').forEach(function (vid) {
-          // Show the video as soon as it has enough data to display a frame
           if (vid.readyState >= 2) {
             vid.classList.add('ready');
           } else {
-            vid.addEventListener('loadeddata', function () {
-              vid.classList.add('ready');
-            });
-            vid.addEventListener('canplay', function () {
-              vid.classList.add('ready');
-            });
+            vid.addEventListener('loadeddata', function () { vid.classList.add('ready'); });
+            vid.addEventListener('canplay', function () { vid.classList.add('ready'); });
           }
-
           forcePlay(vid);
           vid.addEventListener('pause', function () { forcePlay(vid); });
           vid.addEventListener('ended', function () { forcePlay(vid); });
@@ -227,10 +213,8 @@
       }
 
       initAll();
-      window.addEventListener('load', function () { initAll(); });
-      document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) { initAll(); }
-      });
+      window.addEventListener('load', initAll);
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) initAll(); });
       document.addEventListener('touchstart', function handler() {
         initAll();
         document.removeEventListener('touchstart', handler);
