@@ -218,3 +218,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('pageshow', () => {
   window.dispatchEvent(new Event('scroll'));
 });
+
