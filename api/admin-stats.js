@@ -3,6 +3,26 @@
 // Auth: HTTP Basic Auth (username:password)
 // Query: ?days=7 (default 7, options: 7/30/90)
 
+// Map product names (from Stripe line item descriptions) to image paths in our repo
+function getProductImage(productName) {
+  if (!productName) return null;
+  const n = productName.toLowerCase();
+  const baseUrl = 'https://quartzmolle.dk';
+  // Match by keywords in product name
+  if (n.includes('dalarna') && n.includes('fuldkorn')) return `${baseUrl}/images/Dalarna-3Kg-fuldkorn-96x139mm-outlined_copy.jpg`;
+  if (n.includes('dalarna') && n.includes('type 85')) return `${baseUrl}/images/Dalarna-3Kg-type85-96x139mm-outlined_copy.jpg`;
+  if (n.includes('mariagertoba')) return `${baseUrl}/images/Mariagertoba-type70-3Kg-96x139mm-outlined_copy.jpg`;
+  if (n.includes('ølands') && n.includes('fuldkorn')) return `${baseUrl}/images/OlandsHvede-fuldkorn-3Kg-96x139mm-outlined_copy.jpg`;
+  if (n.includes('ølands') && n.includes('type 85')) return `${baseUrl}/images/OlandsHvede-type85-3Kg-96x139mm-outlined_copy.jpg`;
+  if (n.includes('purpurhvede')) return `${baseUrl}/images/Purpurhvede-fuldkorn-3Kg-96x139mm-outlined_copy.jpg`;
+  if (n.includes('rød hvede') && n.includes('fuldkorn')) return `${baseUrl}/images/Rod-Fuldkorn-3kg.jpg`;
+  if (n.includes('rød hvede') && n.includes('type 70')) return `${baseUrl}/images/Rod-Type70-3kg.jpg`;
+  if (n.includes('rød hvede') && n.includes('type 85')) return `${baseUrl}/images/Rod-Type85-3kg.jpg`;
+  if (n.includes('rug')) return `${baseUrl}/images/RugGreen-3Kg-fuldkorn-96x139mm-outlined.jpg`;
+  if (n.includes('spelt')) return `${baseUrl}/images/Spelt-fuldkorn-3kg-Webshop.jpg`;
+  return null;
+}
+
 const ADMIN_USER = 'fintankeenan';
 const ADMIN_PASS = 'Laragh';
 
@@ -12,7 +32,7 @@ function checkAuth(req) {
   try {
     const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf-8');
     const [u, p] = decoded.split(':');
-    return u === ADMIN_USER && p === ADMIN_PASS;
+    return u.toLowerCase() === ADMIN_USER.toLowerCase() && p === ADMIN_PASS;
   } catch { return false; }
 }
 
@@ -69,7 +89,11 @@ export default async function handler(req, res) {
         for (const li of lineItems.data) {
           const name = li.description || 'Produkt';
           const qty = li.quantity || 1;
-          productCounts[name] = (productCounts[name] || 0) + qty;
+          const img = getProductImage(name);
+          if (!productCounts[name]) {
+            productCounts[name] = { qty: 0, image: img };
+          }
+          productCounts[name].qty += qty;
           itemCount += qty;
         }
       } catch (e) { /* skip */ }
@@ -87,7 +111,7 @@ export default async function handler(req, res) {
 
     // Sort + top N
     const topProducts = Object.entries(productCounts)
-      .map(([name, qty]) => ({ name, qty }))
+      .map(([name, data]) => ({ name, qty: data.qty, image: data.image }))
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 8);
 
