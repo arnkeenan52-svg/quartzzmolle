@@ -14,12 +14,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    /* Force black nav bar */
-    .nav {
-      background: #000 !important;
-      background-color: #000 !important;
-    }
-
     /* Mobile bottom mask – BLACK, not blue */
     @media (max-width: 768px) {
       .bottom-mask {
@@ -212,32 +206,40 @@
   <script src="js/main.js"></script>
 
   <script>
-    // Force all videos to play and loop — never pause
+    // Force all background videos to always loop and never pause.
+    // Runs after main.js so it wins any conflicts.
     (function () {
-      var videos = document.querySelectorAll('video.video-bg');
-
-      function ensurePlaying(vid) {
+      function forcePlay(vid) {
         vid.muted = true;
         vid.loop = true;
-        if (vid.paused) {
-          vid.play().catch(function () {});
-        }
+        vid.setAttribute('muted', '');
+        vid.setAttribute('loop', '');
+        vid.setAttribute('playsinline', '');
+        var p = vid.play();
+        if (p && p.catch) p.catch(function () {});
       }
 
-      videos.forEach(function (vid) {
-        ensurePlaying(vid);
-
-        // Re-trigger on pause (e.g. tab switching, iOS backgrounding)
-        vid.addEventListener('pause', function () {
-          vid.play().catch(function () {});
+      function initAll() {
+        document.querySelectorAll('video.video-bg').forEach(function (vid) {
+          forcePlay(vid);
+          // Fight back every time something pauses the video
+          vid.addEventListener('pause', function () { forcePlay(vid); });
+          vid.addEventListener('ended', function () { forcePlay(vid); });
         });
+      }
 
-        // Re-trigger when page becomes visible again
-        document.addEventListener('visibilitychange', function () {
-          if (!document.hidden) {
-            ensurePlaying(vid);
-          }
-        });
+      // Run immediately…
+      initAll();
+      // …and again after everything (including main.js) has fully loaded
+      window.addEventListener('load', function () { initAll(); });
+      // …and whenever the user comes back to the tab/app
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) { initAll(); }
+      });
+      // …and on first touch (required by some mobile browsers)
+      document.addEventListener('touchstart', function handler() {
+        initAll();
+        document.removeEventListener('touchstart', handler);
       });
     })();
   </script>
