@@ -104,7 +104,7 @@ body {
   color: var(--dark) !important;
   text-decoration: none;
   padding: 0.6rem 1.5rem;
-  border-radius: 40px;
+  border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 600;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
@@ -193,7 +193,7 @@ body {
   background: #fff !important;
   color: var(--dark) !important;
   padding: 0.7rem 2rem;
-  border-radius: 40px;
+  border-radius: 6px;
   font-family: 'Inter', sans-serif !important;
   font-size: 1rem !important;
   box-shadow: 0 2px 12px rgba(0,0,0,0.25);
@@ -306,7 +306,7 @@ body.past-videos .video-overlay {
   color: var(--dark);
   text-decoration: none;
   padding: 0.9rem 2.5rem;
-  border-radius: 50px;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 1rem;
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
@@ -325,7 +325,7 @@ body.past-videos .video-overlay {
   color: #fff;
   text-decoration: none;
   padding: 0.75rem 2rem;
-  border-radius: 50px;
+  border-radius: 6px;
   font-weight: 500;
   font-size: 0.95rem;
   transition: background 0.2s, border-color 0.2s;
@@ -345,7 +345,7 @@ body.past-videos .video-overlay {
   color: #fff;
   text-decoration: none;
   padding: 0.9rem 2.5rem;
-  border-radius: 50px;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 1rem;
   transition: background 0.2s, transform 0.2s;
@@ -867,7 +867,7 @@ body.past-videos .video-overlay {
 .weight-btn {
   padding: 0.65rem 1.5rem;
   border: 2px solid #ddd;
-  border-radius: 40px;
+  border-radius: 6px;
   background: #fff;
   cursor: pointer;
   font-size: 0.95rem;
@@ -911,7 +911,7 @@ body.past-videos .video-overlay {
   align-items: center;
   background: #fff;
   border: 1px solid #e5e0d2;
-  border-radius: 999px;
+  border-radius: 6px;
   height: 44px;
   padding: 0 4px;
 }
@@ -972,7 +972,7 @@ body.past-videos .video-overlay {
   color: #fff;
   border: none;
   padding: 1rem 2.5rem;
-  border-radius: 50px;
+  border-radius: 6px;
   font-size: 1.05rem;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
