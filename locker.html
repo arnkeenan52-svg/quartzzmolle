@@ -223,7 +223,7 @@ async function doLogin(){
   if(!code){ return; }
   $('#loginBtn').textContent='…';
   try{
-    const r = await fetch('/api/locker-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+    const r = await fetch('/api/locker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',code})});
     const d = await r.json();
     if(r.ok){ enterApp(); }
     else { $('#loginErr').textContent = d.error || 'Forkert kode'; $('#codeInput').value=''; $('#codeInput').focus(); }
@@ -241,7 +241,7 @@ function enterApp(){
   resetIdle();
 }
 async function logout(){
-  try{ await fetch('/api/locker-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})}); }catch{}
+  try{ await fetch('/api/locker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})}); }catch{}
   showLogin();
 }
 $('#logoutBtn').addEventListener('click', logout);
@@ -256,7 +256,7 @@ function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; 
 
 async function refresh(){
   try{
-    const r = await api('/api/locker-state');
+    const r = await api('/api/locker', {method:'POST', body: JSON.stringify({action:'state'})});
     const d = await r.json();
     lastState = d;
     render(d);
@@ -362,7 +362,7 @@ function confirmOpen(door){
 
 async function cmd(body){
   try{
-    const r=await api('/api/locker-command',{method:'POST',body:JSON.stringify(body)});
+    const r=await api('/api/locker',{method:'POST',body:JSON.stringify(body)});
     const d=await r.json();
     if(!r.ok){ toast(d.error||'Fejl'); return null; }
     refresh();
@@ -394,7 +394,7 @@ function copy(text){
 (async function boot(){
   // If we already have a valid session cookie, go straight in.
   try{
-    const r=await fetch('/api/locker-state',{credentials:'same-origin'});
+    const r=await fetch('/api/locker',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'state'})});
     if(r.ok){ enterApp(); return; }
   }catch{}
   showLogin();
