@@ -1663,3 +1663,24 @@ body.past-videos .video-overlay {
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
 }
+
+/* ── Smiley­rapport link (in footer links row) ───────────────── */
+.footer-smiley-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgba(255,255,255,0.6);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s, transform 0.2s;
+}
+.footer-smiley-link svg { display: block; }
+.footer-smiley-link:hover {
+  color: #f5c400;            /* fødevare-smiley gul ved hover */
+  transform: translateY(-1px);
+}
+.footer-smiley-word { white-space: nowrap; }
+@media (max-width: 600px) {
+  .footer-smiley-word { display: none; }   /* kun selve smiley-ikonet på mobil */
+}
