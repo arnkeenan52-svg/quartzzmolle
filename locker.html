@@ -181,6 +181,10 @@
       <button class="btn btn-primary btn-grow" id="depositBtn">＋ Ny aflevering</button>
       <button class="btn btn-ghost" id="refreshBtn">↻ Opdatér</button>
     </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn btn-blue btn-grow" id="openAllBtn">🔓 Åbn alle</button>
+      <button class="btn btn-ghost btn-grow" id="clearAllBtn" style="color:var(--red);border-color:var(--red-soft)">🧹 Ryd alle</button>
+    </div>
 
     <div class="statline">
       <span><b id="occCount">0</b> / 22 optaget</span>
@@ -305,10 +309,11 @@ function render(d){
   d.history.forEach(o=>{
     const isIn=o.type==='in', isOut=o.type==='out';
     const cls=isIn?'in':isOut?'out':'sys';
-    const label=isIn?'Aflevering':isOut?'Afhentning':o.type==='open'?'Dør åbnet':o.type==='oos_on'?'Sat ud af drift':o.type==='oos_off'?'Sat i drift':o.type;
+    const label=isIn?'Aflevering':isOut?'Afhentning':o.type==='open'?'Dør åbnet':o.type==='openall'?'Alle døre åbnet':o.type==='clearall'?'Alle skabe ryddet':o.type==='oos_on'?'Sat ud af drift':o.type==='oos_off'?'Sat i drift':o.type;
     const row=document.createElement('div'); row.className='hrow';
     const src=o.source==='web'?'web':o.source==='kiosk'?'tablet':'';
-    row.innerHTML='<div class="l1 '+cls+'">'+label+' · Skab '+o.locker+'</div>'+
+    const loc=(o.locker>0)?' · Skab '+o.locker:'';
+    row.innerHTML='<div class="l1 '+cls+'">'+label+loc+'</div>'+
       '<div class="l2">'+fmt(o.t)+(o.code?' · kode '+o.code:'')+(src?' · '+src:'')+'</div>';
     h.appendChild(row);
   });
@@ -385,6 +390,26 @@ function showDepositResult(door, code){
 }
 
 $('#refreshBtn').addEventListener('click', refresh);
+
+/* open all / clear all */
+$('#openAllBtn').addEventListener('click', ()=>{
+  overlay('<h3>Åbn ALLE skabe?</h3><div class="subtt">Alle 22 døre åbnes fysisk på lockeren, én ad gangen.</div>'+
+    '<button class="opt blue" data-a="yes"><span class="em">🔓</span> Ja, åbn alle</button>'+
+    '<button class="cancel" data-a="no">Annullér</button>', true);
+  $('#overlayRoot').querySelector('[data-a="yes"]').addEventListener('click', async()=>{
+    closeOverlay(); await cmd({action:'openall'}); toast('Åbner alle skabe…');
+  });
+  $('#overlayRoot').querySelector('[data-a="no"]').addEventListener('click', closeOverlay);
+});
+$('#clearAllBtn').addEventListener('click', ()=>{
+  overlay('<h3>Ryd ALLE skabe?</h3><div class="subtt">Alle skabe markeres ledige og koderne fjernes. Kan ikke fortrydes.</div>'+
+    '<button class="opt danger" data-a="yes"><span class="em">🧹</span> Ja, ryd alle</button>'+
+    '<button class="cancel" data-a="no">Annullér</button>', true);
+  $('#overlayRoot').querySelector('[data-a="yes"]').addEventListener('click', async()=>{
+    closeOverlay(); await cmd({action:'clearall'}); toast('Alle skabe ryddet');
+  });
+  $('#overlayRoot').querySelector('[data-a="no"]').addEventListener('click', closeOverlay);
+});
 
 function copy(text){
   navigator.clipboard?.writeText(text).then(()=>toast('Kode kopieret: '+text)).catch(()=>toast(text));

@@ -175,6 +175,18 @@ export default async function handler(req, res) {
       await logEvt({ type: t.oos ? 'oos_on' : 'oos_off', locker: door, code: '', source: 'web' });
       return res.status(200).json({ ok: true, oos: t.oos });
     }
+    if (action === 'openall') {
+      for (let d = 1; d <= DOORS; d++) await queueOpen(d);
+      await logEvt({ type: 'openall', locker: 0, code: '', source: 'web' });
+      return res.status(200).json({ ok: true, count: DOORS });
+    }
+    if (action === 'clearall') {
+      let n = 0;
+      for (const l of lockers) { if (l.occ) { l.occ = false; l.code = null; l.since = 0; n++; } }
+      await saveLockers(lockers);
+      await logEvt({ type: 'clearall', locker: 0, code: '', source: 'web' });
+      return res.status(200).json({ ok: true, cleared: n });
+    }
 
     return res.status(400).json({ error: 'Ukendt handling' });
   } catch (e) {
