@@ -14,10 +14,10 @@ const PRODUCTS = [
     type: 'Fuldkornshvedemel',
     badge: 'gammel',
     color: '#c0392b',
-    previewImage: 'images/fuldkorn_dalarna.png',
+    previewImage: 'images/dalarna_type85.png',
     description: 'Dalarna er en klassisk dansk hvedesort med en rig smag og god bageevne. Perfekt til rugbrød, boller og grovbrød. Dyrket og malet i Danmark.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1440 kJ / 343 kcal',
       fat: '2,3 g', saturated: '0,4 g',
@@ -36,10 +36,10 @@ const PRODUCTS = [
     type: 'Mellemsigtet hvedemel – Type 85',
     badge: 'gammel',
     color: '#c0392b',
-    previewImage: 'images/dalarna_type85.png',
+    previewImage: 'images/fuldkorn_dalarna.png',
     description: 'Dalarna Type 85 er et mellemsigtet mel der bevarer mere af kornets naturlige smag og næringsindhold end fintere mel. Ideel til brød med karakter.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1455 kJ / 347 kcal',
       fat: '1,8 g', saturated: '0,3 g',
@@ -61,7 +61,7 @@ const PRODUCTS = [
     previewImage: 'images/mariagertoba.png',
     description: 'Mariagertoba er et fintsigtet hvedemel med fremragende bageegenskaber. Det giver luftige og velsmagende brød og boller. En af vores mest elskede sorter.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1460 kJ / 348 kcal',
       fat: '1,5 g', saturated: '0,3 g',
@@ -83,7 +83,7 @@ const PRODUCTS = [
     previewImage: 'images/olands_fuldkorn.png',
     description: 'Ølandshvede er en gammel nordisk kornsort med en kompleks og nøddeagtig smag. Perfekt til surdejsbrød og håndværkerbrød der kræver karakter.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1435 kJ / 342 kcal',
       fat: '2,4 g', saturated: '0,4 g',
@@ -105,7 +105,7 @@ const PRODUCTS = [
     previewImage: 'images/olands_type85.png',
     description: 'Ølands Type 85 kombinerer det bedste fra fuldkorn og hvidt mel. En alsidig meltype der giver brød med dybde og god struktur.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1450 kJ / 345 kcal',
       fat: '1,8 g', saturated: '0,3 g',
@@ -127,7 +127,7 @@ const PRODUCTS = [
     previewImage: 'images/purpurhvede.png',
     description: 'Purpurhvede er en smuk og sjælden hvedesort med en dyb, lilla farve. Rig på antioxidanter og med en markant, sødlig smag der løfter ethvert bagværk.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'EU-jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1440 kJ / 343 kcal',
       fat: '2,4 g', saturated: '0,4 g',
@@ -138,50 +138,6 @@ const PRODUCTS = [
     weights: [
       { label: '3 kg', price: 108, image: 'images/Purpurhvede-fuldkorn-3Kg-96x139mm-outlined_copy.jpg' },
       { label: '12,5 kg', price: 330, image: 'images/Purpurhvede-fuldkorn-12_5Kg-148x214_29mm-outlined_copy.jpg' }
-    ]
-  },
-  {
-    id: 'quartz-special-fuldkorn',
-    name: 'Quartz Special',
-    type: 'Fuldkornsmel',
-    badge: null,
-    color: '#2d6a4f',
-    previewImage: 'images/qs_fuldkorn.png',
-    description: 'Quartz Special er vores husets særlige blanding – en unik sammensætning af udvalgte kornsorter der giver et komplekst og smagfuldt fuldkornsmel.',
-    certifications: ['DK-ØKO-100', 'Statskontrolleret Økologisk'],
-    origin: 'Malet på stenkværn i Danmark',
-    nutrition: {
-      energy: '1440 kJ / 343 kcal',
-      fat: '2,3 g', saturated: '0,4 g',
-      carbs: '62 g', sugars: '1,0 g',
-      fiber: '11 g', protein: '13 g',
-      salt: '0,01 g'
-    },
-    weights: [
-      { label: '3 kg', price: 108, image: 'images/QS-Fuldkorn-3kg-Webshop.jpg' },
-      { label: '12,5 kg', price: 330, image: 'images/QS-Fuldkorn-12_5_Webshop.jpg' }
-    ]
-  },
-  {
-    id: 'quartz-special-type85',
-    name: 'Quartz Special',
-    type: 'Mellemsigtet mel – Type 85',
-    badge: null,
-    color: '#2d6a4f',
-    previewImage: 'images/qs_type85.png',
-    description: 'Quartz Special Type 85 er vores husets mellemsigtede mel – en særlig blanding med fremragende bageegenskaber og en rig, kompleks smag.',
-    certifications: ['DK-ØKO-100', 'Statskontrolleret Økologisk'],
-    origin: 'Malet på stenkværn i Danmark',
-    nutrition: {
-      energy: '1455 kJ / 347 kcal',
-      fat: '1,8 g', saturated: '0,3 g',
-      carbs: '67 g', sugars: '1,0 g',
-      fiber: '8 g', protein: '12 g',
-      salt: '0,01 g'
-    },
-    weights: [
-      { label: '3 kg', price: 108, image: 'images/QS-Type85-3kg-Webshop.jpg' },
-      { label: '12,5 kg', price: 315, image: 'images/QS-Type85-12_5_Webshop.jpg' }
     ]
   },
   {
@@ -259,7 +215,7 @@ const PRODUCTS = [
     previewImage: 'images/ruggreen_fuldkorn.png',
     description: 'Vores rugmel er malet af hele rugkerner på stenkværn. Rig på fibre og med en dyb, jordnær smag der er uundværlig i det klassiske danske rugbrød.',
     certifications: ['DK-ØKO-100', 'Dansk jordbrug', 'Statskontrolleret Økologisk'],
-    origin: 'Dyrket i Danmark & malet på stenkværn',
+    origin: 'Dyrket i Norden & malet på stenkværn',
     nutrition: {
       energy: '1340 kJ / 320 kcal',
       fat: '2,0 g', saturated: '0,3 g',

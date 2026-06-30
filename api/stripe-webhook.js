@@ -23,11 +23,36 @@ function normalizeCountry(c) {
   return String(c).toUpperCase().slice(0, 2);
 }
 
-function pickTemplateId(deliveryKey, shippingName, templates) {
-  if (deliveryKey && templates[deliveryKey]) return templates[deliveryKey];
-  const name = (shippingName || '').toLowerCase();
-  if (name.includes('pakkeshop')) return templates.gls_pakkeshop;
-  if (name.includes('privat')) return templates.gls_privat;
+// Pick which weight bracket (5/10/15/20) a cart falls into.
+// Brackets match GLS price tiers: 0-1 kg, 1-5 kg, 5-10 kg, 10-15 kg, 15-20 kg.
+// We don't have a 0-1 kg template, so 0-1 kg orders fall into the 1-5 kg bracket.
+function pickWeightBracket(weightKg) {
+  if (weightKg <= 5) return '5';
+  if (weightKg <= 10) return '10';
+  if (weightKg <= 15) return '15';
+  if (weightKg <= 20) return '20';
+  return '25'; // 20-25 kg (anything above 25 also goes here as a safety fallback)
+}
+
+function pickTemplateId(deliveryKey, shippingName, templates, weightKg) {
+  // Determine delivery type: 'gls_pakkeshop' or 'gls_privat'
+  let deliveryType = deliveryKey;
+  if (!deliveryType) {
+    const name = (shippingName || '').toLowerCase();
+    if (name.includes('pakkeshop')) deliveryType = 'gls_pakkeshop';
+    else if (name.includes('privat')) deliveryType = 'gls_privat';
+    else deliveryType = 'gls_privat'; // default fallback
+  }
+
+  // Try weight-bracketed key first, e.g. gls_pakkeshop_10 for a 7 kg order to Pakkeshop
+  const bracket = pickWeightBracket(weightKg || 0);
+  const bracketedKey = `${deliveryType}_${bracket}`;
+  if (templates[bracketedKey]) return templates[bracketedKey];
+
+  // Fallback to non-bracketed key (legacy behavior, single template per delivery type)
+  if (templates[deliveryType]) return templates[deliveryType];
+
+  // Final fallback: any template
   return templates.gls_privat || templates.gls_pakkeshop;
 }
 
@@ -71,13 +96,43 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, skipped: 'no order data' });
     }
 
+    // ── CLICK & COLLECT (afhentning) ──
+    // No carrier shipment: skip Shipmondo/GLS label booking entirely and just send
+    // the order confirmation + admin notification emails. This also covers orders
+    // heavier than GLS can carry, which can only be completed via pickup.
+    if (orderData.deliveryKey === 'pickup') {
+      console.log('Click & Collect order — skipping Shipmondo, sending emails only for', orderData.externalId);
+      // Persist the order so the staff fulfilment page (/fufill) can list it and
+      // later email the customer their locker door + code.
+      try { await savePickupOrder(orderData); } catch (e) { console.error('Failed to save pickup order to KV:', e); }
+      try { await sendOrderConfirmationEmail(orderData); } catch (e) { console.error('Order confirmation email failed:', e); }
+      try { await sendAdminNotificationEmail(orderData); } catch (e) { console.error('Admin notification failed:', e); }
+      return res.status(200).json({ received: true, pickup: true });
+    }
+
     let templates = {};
-    try { templates = JSON.parse(process.env.SHIPMENT_TEMPLATES || '{}'); } catch {}
-    const templateId = pickTemplateId(orderData.deliveryKey, orderData.shippingDisplayName, templates);
+    console.log('Raw SHIPMENT_TEMPLATES env:', JSON.stringify(process.env.SHIPMENT_TEMPLATES));
+    try { templates = JSON.parse(process.env.SHIPMENT_TEMPLATES || '{}'); } catch (e) { console.error('Failed to parse SHIPMENT_TEMPLATES:', e.message); }
+    console.log('Parsed templates:', templates);
+
+    // Calculate total cart weight (kg) — used to pick correct template + packaging
+    function parseWeightKg(label) {
+      if (!label) return 0;
+      const m = String(label).match(/(\d+(?:[.,]\d+)?)\s*kg/i);
+      if (!m) return 0;
+      return parseFloat(m[1].replace(',', '.')) || 0;
+    }
+    const totalWeightKg = orderData.items.reduce((sum, it) => {
+      return sum + (parseWeightKg(it.weightLabel) * (it.qty || 1));
+    }, 0);
+    console.log('Total order weight:', totalWeightKg, 'kg');
+
+    const templateId = pickTemplateId(orderData.deliveryKey, orderData.shippingDisplayName, templates, totalWeightKg);
     if (!templateId) {
-      console.error('No template matched. deliveryKey=', orderData.deliveryKey, 'shippingName=', orderData.shippingDisplayName);
+      console.error('No template matched. deliveryKey=', orderData.deliveryKey, 'shippingName=', orderData.shippingDisplayName, 'weightKg=', totalWeightKg);
       return res.status(200).json({ received: true, error: 'No template matched' });
     }
+    console.log('Picked template ID:', templateId, 'for', orderData.deliveryKey, 'at', totalWeightKg, 'kg');
 
     const VAT_FRAC = 0.25;
     const shortId = String(orderData.externalId).slice(-38);
@@ -85,6 +140,23 @@ export default async function handler(req, res) {
     const orderAmountKr = orderData.amountKr;
     const orderAmountExclVat = Number((orderAmountKr / 1.25).toFixed(2));
     const orderVatAmount = Number((orderAmountKr - orderAmountExclVat).toFixed(2));
+
+    // Pick packaging based on weight bracket
+    // Packaging IDs are configured in Vercel env var SHIPMONDO_PACKAGING
+    // Format: {"5":id,"10":id,"15":id,"20":id,"25":id}
+    let packagingMap = {};
+    console.log('Raw SHIPMONDO_PACKAGING env:', JSON.stringify(process.env.SHIPMONDO_PACKAGING));
+    try { packagingMap = JSON.parse(process.env.SHIPMONDO_PACKAGING || '{}'); } catch (e) { console.error('Failed to parse SHIPMONDO_PACKAGING:', e.message); }
+    console.log('Parsed packagingMap:', packagingMap);
+    function pickPackagingId(weightKg) {
+      if (weightKg <= 5) return packagingMap['5'];
+      if (weightKg <= 10) return packagingMap['10'];
+      if (weightKg <= 15) return packagingMap['15'];
+      if (weightKg <= 20) return packagingMap['20'];
+      return packagingMap['25'];
+    }
+    const packagingId = pickPackagingId(totalWeightKg);
+    console.log('Picked packaging ID:', packagingId, 'for weight', totalWeightKg, 'kg');
 
     const orderLines = orderData.items.map((it, idx) => {
       const qty = it.qty || 1;
@@ -105,13 +177,6 @@ export default async function handler(req, res) {
     });
 
     // Skip Shipmondo if no order lines (prevents 422 errors from duplicate events)
-    if (orderLines.length === 0) {
-      console.log('Skipping Shipmondo: no order lines for', orderData.externalId);
-      return res.status(200).json({ received: true, skipped: 'no order lines' });
-    }
-
-    // Skip Shipmondo if no order lines (e.g. duplicate event from payment_intent.succeeded
-    // when checkout.session.completed already created the order with full data)
     if (orderLines.length === 0) {
       console.log('Skipping Shipmondo: no order lines for', orderData.externalId);
       return res.status(200).json({ received: true, skipped: 'no order lines' });
@@ -155,10 +220,26 @@ export default async function handler(req, res) {
       shipment_template_id: templateId,
       ship_to: shipTo,
       order_lines: orderLines,
+      total_weight: Math.round(totalWeightKg * 1000), // in grams
       // Default to 'ship' (auto-book label). Set SHIPMONDO_ACTION=none in Vercel env vars
       // for free testing — order goes into Shipmondo as draft, no GLS label is purchased.
       action: process.env.SHIPMONDO_ACTION || 'ship',
     };
+
+    // Attach packaging if matched - this is required for Shipmondo to actually book the label
+    if (packagingId) {
+      payload.sales_order_packaging_id = packagingId;
+      // Also include order_fulfillments so Shipmondo knows what to package
+      payload.order_fulfillments = [{
+        sales_order_packaging_id: packagingId,
+        line_items: orderLines.map((ol, idx) => ({
+          item_no: ol.item_no,
+          quantity: ol.quantity,
+        })),
+      }];
+    } else {
+      console.warn('No packaging ID matched for weight', totalWeightKg, 'kg — order will be created as draft only');
+    }
 
     // If customer picked a specific pakkeshop, pass it as the service point
     if (orderData.pakkeshop && orderData.pakkeshop.id) {
@@ -230,10 +311,12 @@ async function sendOrderConfirmationEmail(orderData) {
   const fullName = orderData.customerName || orderData.name || '';
   const customerName = fullName.split(' ')[0]; // first name only
   const orderRef = String(orderData.externalId).slice(-12).toUpperCase();
-  const deliveryLabel = orderData.deliveryKey === 'gls_pakkeshop' ? 'GLS Pakkeshop' : 'GLS Privatadresse';
+  const isPickup = orderData.deliveryKey === 'pickup';
+  const deliveryLabel = deliveryLabelFor(orderData.deliveryKey);
   const totalKr = Number(orderData.amountKr).toFixed(2).replace('.', ',');
 
   const itemsHtml = (orderData.items || []).map(it => {
+    console.log('Email item:', it.productName, '| has image:', !!it.image, '| url:', it.image);
     const name = it.productName + (it.weightLabel ? ` – ${it.weightLabel}` : '');
     const lineTotal = (Number(it.price) * Number(it.qty)).toFixed(2).replace('.', ',');
     const imgCell = it.image
@@ -253,7 +336,7 @@ async function sendOrderConfirmationEmail(orderData) {
       </tr>`;
   }).join('');
 
-  const siteUrl = 'https://quartzzmolle-dusky.vercel.app';
+  const siteUrl = 'https://quartzmolle.dk';
   const logoUrl = `${siteUrl}/images/logopng.png`;
 
   const html = `<!DOCTYPE html>
@@ -278,11 +361,11 @@ async function sendOrderConfirmationEmail(orderData) {
     <tr><td align="center" style="padding:32px 16px;">
 
       <!-- Centered logo above the card -->
-      <a href="${siteUrl}/index.html" style="text-decoration:none;display:inline-block;margin-bottom:24px;">
+      <a href="${siteUrl}" style="text-decoration:none;display:inline-block;margin-bottom:24px;">
         <img src="${logoUrl}" alt="Quartz Mølle" width="64" height="64" style="display:block;width:64px;height:64px;border-radius:50%;" />
       </a>
 
-      <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 6px 28px rgba(0,0,0,0.08);" cellpadding="0" cellspacing="0" bgcolor="#ffffff">
+      <table role="presentation" width="100%" style="max-width:560px;background:#f5f1e8;border-radius:16px;overflow:hidden;box-shadow:0 6px 28px rgba(0,0,0,0.08);" cellpadding="0" cellspacing="0" bgcolor="#f5f1e8">
 
         <!-- Blue banner with eyebrow + heading -->
         <tr><td style="background:#273071;color:#fff;padding:44px 32px 36px;text-align:center;">
@@ -293,7 +376,9 @@ async function sendOrderConfirmationEmail(orderData) {
         <!-- Greeting paragraph -->
         <tr><td style="padding:36px 36px 12px;">
           <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#444;">
-            Vi har modtaget din ordre og pakker den hurtigst muligt. Du får en ny e-mail med tracking når pakken er afsendt.
+            ${isPickup
+              ? 'Vi har modtaget din ordre og gør den klar til afhentning. Du får en ny e-mail når den er klar til at blive hentet på møllen.'
+              : 'Vi har modtaget din ordre og pakker den hurtigst muligt. Du får en ny e-mail med tracking når pakken er afsendt.'}
           </p>
           <p style="margin:0 0 28px;font-size:14px;color:#666;">
             <span style="color:#888;">Ordrenummer:</span> <strong style="color:#222;letter-spacing:0.04em;">${escapeHtmlEmail(orderRef)}</strong>
@@ -316,12 +401,14 @@ async function sendOrderConfirmationEmail(orderData) {
         <tr><td style="padding:32px 36px 8px;">
           <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-bottom:10px;">Levering</div>
           <div style="font-size:15px;color:#222;font-weight:500;">${escapeHtmlEmail(deliveryLabel)}</div>
-          <div style="font-size:13px;color:#777;margin-top:6px;">1–3 hverdage efter afsendelse</div>
+          <div style="font-size:13px;color:#777;margin-top:6px;">${isPickup
+            ? escapeHtmlEmail(PICKUP_ADDRESS) + ' · Vi sender dig en besked når din ordre er klar til afhentning'
+            : '1–3 hverdage efter afsendelse'}</div>
         </td></tr>
 
         <!-- View order button -->
         <tr><td style="padding:32px 36px 8px;text-align:center;">
-          <a href="${siteUrl}/success.html?session_id=${encodeURIComponent(orderData.externalId)}" style="display:inline-block;background:#273071;color:#fff;text-decoration:none;padding:14px 32px;border-radius:999px;font-size:14px;font-weight:600;letter-spacing:0.02em;">Se din ordre</a>
+          <a href="${siteUrl}/success?session_id=${encodeURIComponent(orderData.externalId)}" style="display:inline-block;background:#273071;color:#fff;text-decoration:none;padding:14px 32px;border-radius:999px;font-size:14px;font-weight:600;letter-spacing:0.02em;">Se din ordre</a>
         </td></tr>
 
         <!-- Contact -->
@@ -337,10 +424,10 @@ async function sendOrderConfirmationEmail(orderData) {
       <table role="presentation" width="100%" style="max-width:560px;margin-top:20px;" cellpadding="0" cellspacing="0">
         <tr><td style="text-align:center;padding:8px 16px;font-size:12px;color:#999;line-height:1.7;">
           Quartz Mølle · Suså Landevej 101, 4160 Herlufmagle · Danmark<br/>
-          <a href="${siteUrl}/index.html" style="color:#999;text-decoration:none;margin:0 6px;">Hjem</a> ·
-          <a href="${siteUrl}/shop.html" style="color:#999;text-decoration:none;margin:0 6px;">Shop</a> ·
-          <a href="${siteUrl}/forhandlere.html" style="color:#999;text-decoration:none;margin:0 6px;">Forhandlere</a> ·
-          <a href="${siteUrl}/om.html" style="color:#999;text-decoration:none;margin:0 6px;">Om os</a>
+          <a href="${siteUrl}" style="color:#999;text-decoration:none;margin:0 6px;">Hjem</a> ·
+          <a href="${siteUrl}/shop" style="color:#999;text-decoration:none;margin:0 6px;">Shop</a> ·
+          <a href="${siteUrl}/forhandlere" style="color:#999;text-decoration:none;margin:0 6px;">Forhandlere</a> ·
+          <a href="${siteUrl}/om" style="color:#999;text-decoration:none;margin:0 6px;">Om os</a>
         </td></tr>
       </table>
 
@@ -356,7 +443,7 @@ async function sendOrderConfirmationEmail(orderData) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Quartz Mølle <ordre@quartzmolle.dk>',
+      from: 'Quartz Mølle <order@quartzmolle.dk>',
       to: [email],
       subject: `Tak for din ordre #${orderRef} – Quartz Mølle`,
       html,
@@ -386,7 +473,7 @@ async function sendAdminNotificationEmail(orderData) {
 
   const orderRef = String(orderData.externalId).slice(-12).toUpperCase();
   const totalKr = Number(orderData.amountKr).toFixed(2).replace('.', ',');
-  const deliveryLabel = orderData.deliveryKey === 'gls_pakkeshop' ? 'GLS Pakkeshop' : 'GLS Privatadresse';
+  const deliveryLabel = deliveryLabelFor(orderData.deliveryKey);
 
   const itemsHtml = (orderData.items || []).map(it => {
     const name = it.productName + (it.productType ? ` – ${it.productType}` : '') + (it.weightLabel ? ` – ${it.weightLabel}` : '');
@@ -509,6 +596,38 @@ async function sendAdminNotificationEmail(orderData) {
   console.log('Admin notification email sent to', adminEmail);
 }
 
+// Persist a Click & Collect order so the staff fulfilment page (/fufill) can
+// list it and later email the customer their locker door + code.
+async function savePickupOrder(orderData) {
+  const { kv } = await import('@vercel/kv');
+  const record = {
+    ref: String(orderData.externalId).slice(-12).toUpperCase(),
+    externalId: orderData.externalId,
+    name: orderData.customerName || 'Kunde',
+    email: orderData.customerEmail || '',
+    phone: orderData.customerPhone || '',
+    total: Number(orderData.amountKr) || 0,
+    items: (orderData.items || []).map(it => ({
+      name: it.productName,
+      weightLabel: it.weightLabel || '',
+      qty: it.qty || 1,
+    })),
+    createdAt: Date.now(),
+  };
+  await kv.lpush('pickup:orders', record);
+  await kv.ltrim('pickup:orders', 0, 199);
+}
+
+// Human-readable delivery label for emails.
+function deliveryLabelFor(key) {
+  if (key === 'gls_pakkeshop') return 'GLS Pakkeshop';
+  if (key === 'pickup') return 'Click & Collect – Afhentning på møllen';
+  return 'GLS Privatadresse';
+}
+
+// Pickup location shown to the customer for Click & Collect orders.
+const PICKUP_ADDRESS = 'Suså Landevej 101, 4160 Herlufmagle';
+
 function escapeHtmlEmail(s) {
   return String(s || '')
     .replace(/&/g, '&amp;')
@@ -534,11 +653,12 @@ function parsePaymentIntent(pi) {
   const items = [];
   if (meta.items_summary) {
     for (const chunk of meta.items_summary.split(';')) {
-      const [productName, weightLabel, qty, price] = chunk.split('|');
+      // items_summary is written as name|type|weight|qty|price (5 fields)
+      const [productName, productType, weightLabel, qty, price] = chunk.split('|');
       if (productName && qty && price) {
         items.push({
           productName,
-          productType: '',
+          productType: productType || '',
           weightLabel: weightLabel || '',
           qty: parseInt(qty, 10) || 1,
           price: parseFloat(price) || 0,
@@ -600,6 +720,26 @@ async function parseCheckoutSession(session) {
     };
   });
 
+  // Try to read delivery_method from the session's metadata, or from the
+  // linked PaymentIntent's metadata if not on the session itself.
+  let deliveryKey = full.metadata?.delivery_method || null;
+  if (!deliveryKey && full.payment_intent) {
+    try {
+      const pi = await stripe.paymentIntents.retrieve(full.payment_intent);
+      deliveryKey = pi.metadata?.delivery_method || null;
+    } catch (e) {
+      console.error('Failed to fetch linked PaymentIntent for delivery_method:', e.message);
+    }
+  }
+  // Last-resort fallback: derive from shipping_rate display name.
+  if (!deliveryKey) {
+    const lower = (shippingDisplayName || '').toLowerCase();
+    if (lower.includes('afhent') || lower.includes('collect')) deliveryKey = 'pickup';
+    else if (lower.includes('pakkeshop')) deliveryKey = 'gls_pakkeshop';
+    else if (lower.includes('privat')) deliveryKey = 'gls_privat';
+  }
+  console.log('Resolved deliveryKey for checkout session:', deliveryKey, '| shippingDisplayName:', shippingDisplayName);
+
   return {
     externalId: full.id,
     transactionId: full.payment_intent || full.id,
@@ -608,7 +748,7 @@ async function parseCheckoutSession(session) {
     customerEmail: customer.email || '',
     customerPhone: customer.phone || '',
     address,
-    deliveryKey: null,
+    deliveryKey,
     shippingDisplayName,
     items,
   };

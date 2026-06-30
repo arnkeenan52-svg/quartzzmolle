@@ -20,8 +20,7 @@ function fragtReglerHTML() {
   return `
     <p><strong>GLS</strong> Levering til pakkeshop i Danmark – <strong>max 20 kg</strong></p>
     <p><strong>GLS</strong> Levering til privatadresse i Danmark – <strong>max 25 kg</strong></p>
-    <p>Vores 12,5 kg melposer har altid mere mel i poserne – derfor kan vi ikke sende 2 stk. 12,5 kg med GLS på en 25 kg levering.</p>
-    <p><strong>Danske Fragtmand</strong> Privatlevering – forudsætter, at der er <strong>nogen til stede til at modtage leveringen</strong>, eller at der på forhånd gives tydelige instruktioner om <strong>et sikkert sted, hvor pakken kan stilles</strong>. Hvis leveringen ikke kan modtages personligt, og der ikke er angivet et sikkert afleveringssted, <strong>vil forsendelsen blive sendt retur til møllen</strong>.</p>
+    <p>Bemærk: Du kan <strong>ikke bestille 2 stk. 12,5 kg melposer</strong> i samme ordre. Vores 12,5 kg poser indeholder altid lidt mere mel end angivet, så to af dem vejer omkring <strong>25,2 kg</strong> – hvilket overskrider GLS' grænse på 25 kg.</p>
   `;
 }
 
@@ -214,12 +213,53 @@ async function handleBuy() {
   }
 }
 
+// ── FORESLÅEDE PRODUKTER ──
+// Viser op til 4 andre produkter på hver produktside. Vi prioriterer
+// andre kornsorter end den viste (så listen ikke kun er størrelsesvarianter)
+// og lader bestsellers komme først.
+function renderSuggested(product) {
+  const section = document.getElementById('suggested');
+  const grid = document.getElementById('suggestedGrid');
+  if (!section || !grid || typeof PRODUCTS === 'undefined') return;
+
+  const others = PRODUCTS.filter(p => p.id !== product.id);
+  const sorted = others.slice().sort((a, b) => {
+    const diffName = (a.name === product.name) - (b.name === product.name);
+    if (diffName !== 0) return diffName; // andre sorter først
+    return (b.badge === 'bestseller') - (a.badge === 'bestseller'); // bestsellers først
+  });
+  const picks = sorted.slice(0, 4);
+  if (!picks.length) return;
+
+  grid.innerHTML = picks.map(p => {
+    const img = p.previewImage || p.weights[0].image;
+    const price = p.weights[0].price;
+    const badgeHTML = p.badge === 'bestseller'
+      ? `<span class="product-card-badge badge-bestseller">Bestseller</span>`
+      : '';
+    return `
+      <a href="product.html?id=${p.id}" class="product-card">
+        <img src="${img}" alt="${p.name} ${p.type}" class="product-card-img" loading="lazy" />
+        <div class="product-card-body">
+          ${badgeHTML}
+          <div class="product-card-name">${p.name}</div>
+          <div class="product-card-sub">${p.type}</div>
+          <div class="product-card-price">Fra ${price},00 kr.</div>
+        </div>
+      </a>
+    `;
+  }).join('');
+
+  section.hidden = false;
+}
+
 function loadProduct() {
   const id = new URLSearchParams(window.location.search).get('id');
   if (!id) { window.location.href = 'shop.html'; return; }
   const product = PRODUCTS.find(p => p.id === id);
   if (!product) { window.location.href = 'shop.html'; return; }
   renderProduct(product);
+  renderSuggested(product);
 }
 
 document.addEventListener('DOMContentLoaded', loadProduct);

@@ -18,17 +18,17 @@ export default async function handler(req, res) {
     const origin = 'https://quartzzmolle-dusky.vercel.app';
 
     const line_items = items.map(it => {
+      // Build name: "Rød hvede – Type 70" so it shows in Stripe AND Shipmondo
+      const typeStr = it.productType ? ` – ${it.productType}` : '';
       const product_data = {
-        name: it.productName,
+        name: `${it.productName}${typeStr}`,
         description: `${it.weightLabel} · Malet på stenkværn i Danmark · Certificeret Økologisk`,
       };
-      // Only include image if it's set and we can build a valid absolute URL
       if (it.image) {
         let imgUrl;
         if (it.image.startsWith('http')) {
           imgUrl = it.image;
         } else {
-          // URL-encode each path segment to handle special characters in filenames
           const path = it.image.replace(/^\//, '').split('/').map(encodeURIComponent).join('/');
           imgUrl = `${origin}/${path}`;
         }
@@ -59,23 +59,38 @@ export default async function handler(req, res) {
     }, 0);
     console.log('Total cart weight:', totalWeightKg, 'kg');
 
-    // GLS shipping limits (with 0.1 kg buffer because 12.5 kg bags are slightly heavier)
+    // GLS shipping limits. Orders heavier than GLS can carry are NOT blocked
+    // anymore — they can still be completed with Click & Collect (pickup), which
+    // has no carrier weight limit. See shippingOptions below.
     const PAKKESHOP_LIMIT = 19.9;
     const PRIVAT_LIMIT = 24.9;
 
-    if (totalWeightKg > PRIVAT_LIMIT) {
-      return res.status(400).json({
-        error: `Din ordre vejer ${totalWeightKg.toFixed(1)} kg. GLS kan kun sende op til 25 kg. Del venligst din ordre op i flere bestillinger eller kontakt os på hello@quartzmolle.dk.`,
-      });
+    // GLS ShopDelivery prices by weight (øre)
+    function getPakkeshopPrice(kg) {
+      if (kg <= 5)  return 4600;
+      if (kg <= 10) return 5500;
+      if (kg <= 15) return 6600;
+      return 8100; // 15-20 kg
     }
 
-    // Build shipping options based on weight
+    // GLS PrivateDelivery prices by weight (øre)
+    function getPrivatPrice(kg) {
+      if (kg <= 5)  return 6300;
+      if (kg <= 10) return 7500;
+      if (kg <= 15) return 9000;
+      if (kg <= 20) return 10500;
+      return 13900; // 20-25 kg
+    }
+
+    // Build shipping options based on weight.
+    // GLS options are only offered within carrier limits; Click & Collect is always
+    // available — and is the ONLY option for orders heavier than GLS can carry.
     const shippingOptions = [];
     if (totalWeightKg <= PAKKESHOP_LIMIT) {
       shippingOptions.push({
         shipping_rate_data: {
           type: 'fixed_amount',
-          fixed_amount: { amount: 4900, currency: 'dkk' },
+          fixed_amount: { amount: getPakkeshopPrice(totalWeightKg), currency: 'dkk' },
           display_name: 'GLS Pakkeshop (max 20 kg)',
           delivery_estimate: {
             minimum: { unit: 'business_day', value: 1 },
@@ -84,11 +99,28 @@ export default async function handler(req, res) {
         },
       });
     }
+    if (totalWeightKg <= PRIVAT_LIMIT) {
+      shippingOptions.push({
+        shipping_rate_data: {
+          type: 'fixed_amount',
+          fixed_amount: { amount: getPrivatPrice(totalWeightKg), currency: 'dkk' },
+          display_name: 'GLS Privatadresse (max 25 kg)',
+          delivery_estimate: {
+            minimum: { unit: 'business_day', value: 1 },
+            maximum: { unit: 'business_day', value: 3 },
+          },
+        },
+      });
+    }
+
+    // Click & Collect — gratis afhentning på møllen. The display_name must stay
+    // recognisable to the webhook (it matches "afhent"/"collect") and must NOT
+    // contain "pakkeshop"/"privat", so it is never misread as a GLS delivery.
     shippingOptions.push({
       shipping_rate_data: {
         type: 'fixed_amount',
-        fixed_amount: { amount: 6900, currency: 'dkk' },
-        display_name: 'GLS Privatadresse (max 25 kg)',
+        fixed_amount: { amount: 0, currency: 'dkk' },
+        display_name: 'Click & Collect – Afhentning på møllen (Suså Landevej 101)',
         delivery_estimate: {
           minimum: { unit: 'business_day', value: 1 },
           maximum: { unit: 'business_day', value: 3 },
@@ -96,18 +128,25 @@ export default async function handler(req, res) {
       },
     });
 
+    // Embed items in metadata (format: name|type|weight|qty|price) so the webhook
+    // can always recover productType even if the Stripe product name parsing fails.
+    const itemsSummary = items.map(it =>
+      `${it.productName}|${it.productType || ''}|${it.weightLabel}|${it.qty}|${it.price}`
+    ).join(';').slice(0, 490);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'mobilepay'],
       line_items,
       mode: 'payment',
-      success_url: `${req.headers.origin}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/shop.html`,
+      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin}/shop`,
       shipping_address_collection: {
         allowed_countries: ['DK', 'SE', 'NO', 'DE', 'NL', 'GB'],
       },
       phone_number_collection: { enabled: true },
       shipping_options: shippingOptions,
       locale: 'da',
+      metadata: { items_summary: itemsSummary },
     });
 
     return res.status(200).json({ url: session.url });

@@ -2,6 +2,15 @@
 // QUARTZ MØLLE — MAIN JS
 // ============================================================
 
+// Load visitor tracker for admin dashboard analytics
+(function loadTracker() {
+  if (window.location.pathname.includes('/admin')) return;
+  const s = document.createElement('script');
+  s.src = 'js/track.js';
+  s.async = true;
+  document.head.appendChild(s);
+})();
+
 // ── MOBILE MENU ──
 const burger = document.getElementById('burger');
 const mobileMenu = document.getElementById('mobileMenu');
@@ -15,9 +24,33 @@ if (burger && mobileMenu) {
     }
     mobileMenu.classList.add('open');
   });
-  // When user clicks a link/button inside the menu, the page navigates anyway,
-  // so no reload needed there.
-  mobileMenu.querySelectorAll('a, button').forEach(el => {
+  // When user clicks a link inside the mobile menu
+  mobileMenu.querySelectorAll('a').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const href = el.getAttribute('href');
+      if (!href) return;
+
+      // Anchor link on same page - close menu and smoothly scroll to target
+      if (href.startsWith('#')) {
+        e.preventDefault();
+        mobileMenu.classList.remove('open');
+        const targetId = href.slice(1);
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          // Wait for the menu close animation to finish before scrolling
+          setTimeout(() => {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
+        return;
+      }
+
+      // Anchor on different page (e.g. "index.html#kontakt") - navigate normally
+      // All other links: just close menu, let default behavior happen
+      mobileMenu.classList.remove('open');
+    });
+  });
+  mobileMenu.querySelectorAll('button').forEach(el => {
     el.addEventListener('click', () => mobileMenu.classList.remove('open'));
   });
 }
@@ -203,13 +236,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Re-fire scroll on pageshow so when user returns to this page (e.g. via back button
-// from /om.html) the video-fade state and bottom-mask refresh correctly. If page is
-// restored from bfcache (event.persisted is true), force a full reload to avoid
-// stale layout/scroll state that causes the bottom mask to fail.
-window.addEventListener('pageshow', (event) => {
-  if (event.persisted) {
-    window.location.reload();
-    return;
-  }
+// from /om.html) the video-fade state and bottom-mask refresh correctly.
+// We previously reloaded on bfcache restore but that created redirect loops with
+// Vercel cleanUrls. Now we only refresh scroll state.
+window.addEventListener('pageshow', () => {
   window.dispatchEvent(new Event('scroll'));
 });
